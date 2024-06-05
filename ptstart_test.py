@@ -13,7 +13,7 @@ def gen_insert_query(rows_num):
     condidate_types.append('("Nikolaeva Violetta", "2005-06-27", "woman", "Information Security of the Higher School of Economics"),')
     condidate_types.append('("Nikolaev Georgy", "2005-01-21", "man", "System analysis of MEPhI"),')
     condidate_types.append('("Tkacheva Vera", "2005-10-04", "woman", "HSE Business Informatics"),')
-    condidate_types.append('("Ovodov Dmitry", "2005-07-15", "man", "Information Security of the Higher School of Economics"),')
+    condidate_types.append('("Ovodov Dmitry", "2005-07-15", "man", "Computer Security of the Higher School of Economics"),')
     condidate_types.append('("Savkina Polina", "2005-06-15", "woman", "Moscow State University Faculty of Law"),')
     condidate_types.append('("Zmaeva Sveta", "2005-04-22", "woman", "Faculty of Design of Moscow State University"),')
     condidate_types.append('("Zaitsev Fedor", "2005-12-16", "man", "Computer Science and Control Systems of Bauman Moscow State Technical University"),')
@@ -40,7 +40,7 @@ cursor.execute(f"""CREATE TABLE IF NOT EXISTS {os.getenv('DB_DATABASE')}.interns
 default_data = """("Nikolaeva Violetta", "2005-06-27", "woman", "Information Security of the Higher School of Economics"),
                 ("Nikolaev Georgy", "2005-01-21", "man", "System analysis of MEPhI"),
                 ("Tkacheva Vera", "2005-10-04", "woman", "HSE Business Informatics"),
-                ("Ovodov Dmitry", "2005-07-15", "man", "Information Security of the Higher School of Economics"),
+                ("Ovodov Dmitry", "2005-07-15", "man", "Computer Security of the Higher School of Economics"),
                 ("Savkina Polina", "2005-06-15", "woman", "Moscow State University Faculty of Law"),
                 ("Zmaeva Svetlana", "2005-04-22", "woman", "Faculty of Design of Moscow State University"),
                 ("Zaitsev Fedor", "2005-12-16", "man", "Computer Science and Control Systems of Bauman Moscow State Technical University"),
@@ -187,6 +187,20 @@ class SelectFuncTest(unittest.TestCase):
         cursor.execute(f'CREATE INDEX education_index ON {os.getenv('DB_DATABASE')}.internship_candidates (education)')
         
         cursor.execute(f'SELECT name, birth_date, sex FROM {os.getenv('DB_DATABASE')}.internship_candidates WHERE education LIKE "Information Security%"')
+        result_with_index=cursor.fetchall()
+        
+        cursor.execute(f'DROP INDEX education_index ON {os.getenv('DB_DATABASE')}.internship_candidates')
+        
+        self.assertEqual(result_without_index, result_with_index)
+        
+    def test_education_index_Computer_Security_of_the_Higher_School_of_Economics(self):
+        
+        cursor.execute(f'SELECT name, birth_date, sex FROM {os.getenv('DB_DATABASE')}.internship_candidates WHERE education LIKE "Computer Security%"')
+        result_without_index=cursor.fetchall()
+        
+        cursor.execute(f'CREATE INDEX education_index ON {os.getenv('DB_DATABASE')}.internship_candidates (education)')
+        
+        cursor.execute(f'SELECT name, birth_date, sex FROM {os.getenv('DB_DATABASE')}.internship_candidates WHERE education LIKE "Computer Security%"')
         result_with_index=cursor.fetchall()
         
         cursor.execute(f'DROP INDEX education_index ON {os.getenv('DB_DATABASE')}.internship_candidates')
@@ -613,6 +627,39 @@ class SelectPerfTest(unittest.TestCase):
             if time_select_with_index_mas[i] < time_select_without_index_mas[i]:
                 time_win_count += 1
         self.assertEqual(time_win_count > 5, 1)
+    
+    def test_education_index_Computer_Security_of_the_Higher_School_of_Economics(self):
+        
+        time_select_without_index_mas = [] 
+        
+        for i in range(10):
+            time_select_without_index = datetime.datetime.now()
+            cursor.execute(f'SELECT name, birth_date, sex FROM {os.getenv('DB_DATABASE')}.internship_candidates WHERE education LIKE "Computer Security%"')
+            time_select_without_index = datetime.datetime.now() - time_select_without_index
+            result_without_index=cursor.fetchall()
+            time_select_without_index_mas.append(time_select_without_index)
+            
+        cursor.execute(f'CREATE INDEX education_index ON {os.getenv('DB_DATABASE')}.internship_candidates (education)')
+        connection.commit()
+        
+        time_select_with_index_mas = [] 
+        
+        for i in range(10):
+            start_select_with_index = datetime.datetime.now()
+            cursor.execute(f'SELECT name, birth_date, sex FROM {os.getenv('DB_DATABASE')}.internship_candidates WHERE education LIKE "Computer Security%"')
+            time_select_with_index = datetime.datetime.now() - start_select_with_index
+            result_with_index=cursor.fetchall()
+            time_select_with_index_mas.append(time_select_with_index)
+                
+        cursor.execute(f'DROP INDEX education_index ON {os.getenv('DB_DATABASE')}.internship_candidates')
+        connection.commit()
+                
+        time_win_count = 0
+        for i in range(10):
+            if time_select_with_index_mas[i] < time_select_without_index_mas[i]:
+                time_win_count += 1
+        self.assertEqual(time_win_count > 5, 1)
+    
     
     def test_education_index_System_analysis_of_MEPhI(self):
         
